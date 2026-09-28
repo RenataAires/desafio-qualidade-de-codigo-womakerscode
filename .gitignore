@@ -1,0 +1,47 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+out/
+publish/
+
+# Visual Studio / VS Code / Rider
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+.nuget/
+
+# Rider/ReSharper
+*.DotSettings.user
+
+# App runtime data (gerado em tempo de execucao, nao deve ser versionado)
+*.db
+*.db-shm
+*.db-wal
+*.log
+log.txt
+
+# Secrets / config local
+appsettings.*.local.json
+secrets.json
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
