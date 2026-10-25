@@ -7,7 +7,7 @@ public class Pedido
     public DateTime DataPedido { get; set; }
 
     // status controlado por enum
-    public StatusPedido Status { get; set; }
+    public string Status { get; set; } = string.Empty;
     public decimal ValorTotal { get; set; }
     public string FormaPagamento { get; set; }
     public string CodigoRastreio { get; set; }
