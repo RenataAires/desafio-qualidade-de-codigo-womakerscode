@@ -4,6 +4,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(
+    builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     // gambiarra pra nao quebrar quando serializar Pedido -> Itens -> Pedido (referencia ciclica)
@@ -15,8 +18,10 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // cria o banco e ja popula uns produtos, tudo direto aqui no Program.cs mesmo
-using (var db = new AppDbContext())
+using (var scope = app.Services.CreateScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
     db.Database.EnsureCreated();
 
     if (!db.Produtos.Any())
