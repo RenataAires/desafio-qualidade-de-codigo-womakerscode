@@ -30,11 +30,6 @@ public class EcommerceController : ControllerBase
 
     // ==================== PRODUTOS (CRUD) ====================
     
-
-    public EcommerceController(AppDbContext db)
-    {
-        _db = db;
-    }
     [HttpGet("api/produtos")]
     public async Task<IActionResult> ListarProdutos()
     {
