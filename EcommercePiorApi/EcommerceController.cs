@@ -29,7 +29,7 @@ public class EcommerceController : ControllerBase
     }
 
     // ==================== PRODUTOS (CRUD) ====================
-    private readonly AppDbContext _db;
+    
 
     public EcommerceController(AppDbContext db)
     {
