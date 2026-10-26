@@ -1,63 +1,52 @@
 using PiorEcommerceDoMundo.Services.Interfaces;
+using PiorEcommerceDoMundo.Repositories.Interfaces;
+using PiorEcommerceDoMundo.Repositories;
 
 namespace PiorEcommerceDoMundo.Services;
 
 public class EstoqueService : IEstoqueService
 {
-    public List<object> ListarEstoque()
+    private readonly IProdutoRepository _produtoRepository;
+
+    public EstoqueService(IProdutoRepository produtoRepository)
     {
-        var db = new AppDbContext();
-        var lista = db.Produtos.ToList();
-        var resultado = new List<object>();
-        foreach (var p in lista)
-        {
-            resultado.Add(new { produto = p.Nome, quantidade = p.QuantidadeEstoque });
-        }
-        return resultado;
+        _produtoRepository = produtoRepository;
     }
 
-    public (bool sucesso, Produto produto) Reabastecer(int produtoId, int quantidade)
+    public async Task<object> ListarEstoqueAsync()
     {
-        if (quantidade <= 0) return (false, null);
-        var db = new AppDbContext();
-        var produto = db.Produtos.Find(produtoId);
-        if (produto == null) return (false, null);
+        var produtos = await _produtoRepository.ListarAsync();
+        return produtos.Select(p => new 
+        { 
+            p.Id, 
+            p.Nome, 
+            p.QuantidadeEstoque 
+        }).ToList();
+    }
 
-        produto.QuantidadeEstoque = produto.QuantidadeEstoque + quantidade;
-        db.SaveChanges();
-        Utils.Log("Estoque reabastecido produto " + produtoId);
+    public async Task<(bool sucesso, Produto produto)> ReabastecerAsync(int produtoId, int quantidade)
+    {
+        var produto = await _produtoRepository.ObterPorIdAsync(produtoId);
+        if (produto == null) return (false, null!);
+
+        produto.QuantidadeEstoque += quantidade;
+        _produtoRepository.Atualizar(produto);
+        await _produtoRepository.SalvarAlteracoesAsync();
 
         return (true, produto);
     }
 
-    public (bool sucesso, string erro, Produto produto) ValidarEBaixarEstoque(int produtoId, int quantidade)
+    public async Task EstornarEstoqueAsync(List<ItemPedido> itens)
     {
-        var db = new AppDbContext();
-        var produto = db.Produtos.Find(produtoId);
-
-        if (produto == null)
-            return (false, "produto " + produtoId + " nao encontrado", null);
-
-        if (!produto.Ativo)
-            return (false, "produto " + produto.Nome + " esta inativo", null);
-
-        if (produto.QuantidadeEstoque < quantidade)
-            return (false, "estoque insuficiente para " + produto.Nome, null);
-
-        produto.QuantidadeEstoque = produto.QuantidadeEstoque - quantidade;
-        db.SaveChanges();
-
-        return (true, string.Empty, produto);
-    }
-
-    public void EstornarEstoque(int produtoId, int quantidade)
-    {
-        var db = new AppDbContext();
-        var produto = db.Produtos.Find(produtoId);
-        if (produto != null)
+        foreach (var item in itens)
         {
-            produto.QuantidadeEstoque = produto.QuantidadeEstoque + quantidade;
-            db.SaveChanges();
+            var produto = await _produtoRepository.ObterPorIdAsync(item.ProdutoId);
+            if (produto != null)
+            {
+                produto.QuantidadeEstoque += item.Quantidade;
+                _produtoRepository.Atualizar(produto);
+            }
         }
+        await _produtoRepository.SalvarAlteracoesAsync();
     }
 }

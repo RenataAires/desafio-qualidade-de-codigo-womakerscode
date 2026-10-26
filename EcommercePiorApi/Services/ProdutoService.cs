@@ -1,64 +1,60 @@
 using PiorEcommerceDoMundo.Services.Interfaces;
+using PiorEcommerceDoMundo.Repositories.Interfaces;
+using PiorEcommerceDoMundo.Repositories;
 
 namespace PiorEcommerceDoMundo.Services;
 
 public class ProdutoService : IProdutoService
 {
-    public List<Produto> ListarTodos()
+    private readonly IProdutoRepository _produtoRepository;
+
+    public ProdutoService(IProdutoRepository produtoRepository)
     {
-        var db = new AppDbContext();
-        return db.Produtos.ToList();
+        _produtoRepository = produtoRepository;
     }
 
-    public (bool sucesso, Produto? produto) BuscarPorId(int id)
+    public async Task<List<Produto>> ListarTodosAsync()
     {
-        var db = new AppDbContext();
-        var produto = db.Produtos.Find(id);
-        if (produto == null) return (false, null);
+        return await _produtoRepository.ListarAsync();
+    }
 
+    public async Task<(bool sucesso, Produto produto)> BuscarPorIdAsync(int id)
+    {
+        var produto = await _produtoRepository.ObterPorIdAsync(id);
+        if (produto == null) return (false, null!);
         return (true, produto);
     }
 
-    public (bool sucesso, string erro, Produto produto) Criar(Produto produto)
+    public async Task<(bool sucesso, string erro, Produto produto)> CriarAsync(Produto produto)
     {
-        if (string.IsNullOrEmpty(produto.Nome))
-            return (false, "nome invalido", null);
-
-        if (produto.Preco <= 0)
-            return (false, "preco invalido", null);
-
-        var db = new AppDbContext();
-        db.Produtos.Add(produto);
-        db.SaveChanges();
-        Utils.Log("Produto criado: " + produto.Nome);
-
-        return (true, string.Empty, produto);
+        await _produtoRepository.AdicionarAsync(produto);
+        await _produtoRepository.SalvarAlteracoesAsync();
+        return (true, "", produto);
     }
 
-    public (bool sucesso, Produto produto) Atualizar(int id, Produto produto)
+    public async Task<(bool sucesso, Produto produto)> AtualizarAsync(int id, Produto produtoAtualizado)
     {
-        var db = new AppDbContext();
-        var existente = db.Produtos.Find(id);
-        if (existente == null) return (false, null);
+        var produto = await _produtoRepository.ObterPorIdAsync(id);
+        if (produto == null) return (false, null!);
 
-        existente.Nome = produto.Nome;
-        existente.Descricao = produto.Descricao;
-        existente.Preco = produto.Preco;
-        existente.QuantidadeEstoque = produto.QuantidadeEstoque;
-        existente.Ativo = produto.Ativo;
+        produto.Nome = produtoAtualizado.Nome;
+        produto.Descricao = produtoAtualizado.Descricao;
+        produto.Preco = produtoAtualizado.Preco;
+        produto.QuantidadeEstoque = produtoAtualizado.QuantidadeEstoque;
+        produto.Ativo = produtoAtualizado.Ativo;
 
-        db.SaveChanges();
-        return (true, existente);
+        _produtoRepository.Atualizar(produto); 
+        await _produtoRepository.SalvarAlteracoesAsync();
+        return (true, produto);
     }
 
-    public bool Deletar(int id)
+    public async Task<bool> DeletarAsync(int id)
     {
-        var db = new AppDbContext();
-        var existente = db.Produtos.Find(id);
-        if (existente == null) return false;
+        var produto = await _produtoRepository.ObterPorIdAsync(id);
+        if (produto == null) return false;
 
-        db.Produtos.Remove(existente);
-        db.SaveChanges();
+        _produtoRepository.Remover(produto); 
+        await _produtoRepository.SalvarAlteracoesAsync();
         return true;
     }
 }

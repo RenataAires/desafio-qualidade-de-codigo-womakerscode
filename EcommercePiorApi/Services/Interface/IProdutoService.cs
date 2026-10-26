@@ -1,11 +1,10 @@
 namespace PiorEcommerceDoMundo.Services.Interfaces;
 
-
 public interface IProdutoService
 {
-    List<Produto> ListarTodos();
-    (bool sucesso, Produto produto) BuscarPorId(int id);
-    (bool sucesso, string erro, Produto produto) Criar(Produto produto);
-    (bool sucesso, Produto produto) Atualizar(int id, Produto produto);
-    bool Deletar(int id);
+    Task<List<Produto>> ListarTodosAsync();
+    Task<(bool sucesso, Produto produto)> BuscarPorIdAsync(int id);
+    Task<(bool sucesso, string erro, Produto produto)> CriarAsync(Produto produto);
+    Task<(bool sucesso, Produto produto)> AtualizarAsync(int id, Produto produtoAtualizado);
+    Task<bool> DeletarAsync(int id);
 }

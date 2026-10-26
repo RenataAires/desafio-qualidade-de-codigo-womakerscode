@@ -2,7 +2,7 @@ namespace PiorEcommerceDoMundo.Services.Interfaces;
 
 public interface IPedidoService
 {
-    List<Pedido> ListarTodos();
-    Pedido? BuscarPorId(int id);
-    (bool sucesso, string erro, Pedido pedido) Criar(PedidoRequest request);
+    Task<(bool sucesso, string erro, Pedido pedido)> CriarAsync(PedidoRequest request);
+    Task<List<Pedido>> ListarTodosAsync();
+    Task<Pedido> BuscarPorIdAsync(int id);
 }
