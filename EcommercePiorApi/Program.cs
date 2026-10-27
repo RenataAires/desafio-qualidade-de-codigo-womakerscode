@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PiorEcommerceDoMundo;
 using System.Text.Json.Serialization;
+using PiorEcommerceDoMundo.Repositories;
+using PiorEcommerceDoMundo.Repositories.Interfaces;
 using PiorEcommerceDoMundo.Services;
 using PiorEcommerceDoMundo.Services.Interfaces;
 
@@ -8,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(
     builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
