@@ -2,6 +2,7 @@ using PiorEcommerceDoMundo;
 using PiorEcommerceDoMundo.Enums;
 using PiorEcommerceDoMundo.Repositories.Interfaces;
 using PiorEcommerceDoMundo.Services.Interfaces;
+using PiorEcommerceDoMundo.DTOs;
 
 namespace PiorEcommerceDoMundo.Services;
 
