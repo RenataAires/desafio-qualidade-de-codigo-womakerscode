@@ -1,5 +1,3 @@
-#nullable enable
-
 using PiorEcommerceDoMundo;
 
 namespace PiorEcommerceDoMundo.Repositories.Interfaces;

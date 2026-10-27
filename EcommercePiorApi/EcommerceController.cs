@@ -5,153 +5,108 @@ using PiorEcommerceDoMundo.Services.Interfaces;
 
 namespace PiorEcommerceDoMundo;
 
+// Controller legado mantido temporariamente para preservar os endpoints existentes.
+// A Pessoa 4 poderá substituí-lo pelos controllers separados depois de validar os novos.
 [ApiController]
 public class EcommerceController : ControllerBase
 {
     private readonly IProdutoService _produtoService;
-    private readonly IDescontoService _descontoService;
     private readonly IEstoqueService _estoqueService;
     private readonly IPedidoService _pedidoService;
-    private readonly AppDbContext _db; 
+    private readonly AppDbContext _db;
 
-    public EcommerceController(
-        IProdutoService produtoService, 
-        IDescontoService descontoService, 
-        IEstoqueService estoqueService, 
-        IPedidoService pedidoService,
-        AppDbContext db) 
+    public EcommerceController(IProdutoService produtoService, IEstoqueService estoqueService,
+        IPedidoService pedidoService, AppDbContext db)
     {
         _produtoService = produtoService;
-        _descontoService = descontoService;
-        _estoqueService = estoqueService; 
-        _pedidoService = pedidoService;   
-        _db = db; 
+        _estoqueService = estoqueService;
+        _pedidoService = pedidoService;
+        _db = db;
     }
 
-    // ==================== PRODUTOS (CRUD) ====================
-    
     [HttpGet("api/produtos")]
-    public async Task<IActionResult> ListarProdutos()
-    {
-        var lista = await _produtoService.ListarTodosAsync();
-        return Ok(lista);
-    }
+    public async Task<IActionResult> ListarProdutos() => Ok(await _produtoService.ListarTodosAsync());
 
-    [HttpGet("api/produtos/{id}")]
+    [HttpGet("api/produtos/{id:int}")]
     public async Task<IActionResult> BuscarProduto(int id)
     {
         var (sucesso, produto) = await _produtoService.BuscarPorIdAsync(id);
-
-        if (!sucesso) return NotFound();
-        return Ok(produto);
+        return sucesso ? Ok(produto) : NotFound();
     }
 
     [HttpPost("api/produtos")]
     public async Task<IActionResult> CriarProduto([FromBody] Produto produto)
     {
-        var (sucesso, erro, produtoCriado) = await _produtoService.CriarAsync(produto);
-
-        if (!sucesso) return BadRequest(erro);
-        return Ok(produtoCriado);
+        var (sucesso, erro, criado) = await _produtoService.CriarAsync(produto);
+        return sucesso ? Created($"/api/produtos/{criado!.Id}", criado) : BadRequest(erro);
     }
 
-    [HttpPut("api/produtos/{id}")]
+    [HttpPut("api/produtos/{id:int}")]
     public async Task<IActionResult> AtualizarProduto(int id, [FromBody] Produto produto)
     {
         var (sucesso, atualizado) = await _produtoService.AtualizarAsync(id, produto);
-
-        if (!sucesso) return NotFound();
-        return Ok(atualizado);
+        return sucesso ? Ok(atualizado) : NotFound();
     }
 
-    [HttpDelete("api/produtos/{id}")]
+    [HttpDelete("api/produtos/{id:int}")]
     public async Task<IActionResult> DeletarProduto(int id)
-    {
-        bool deletado = await _produtoService.DeletarAsync(id);
-
-        if (!deletado) return NotFound();
-        return Ok();
-    }
-
-    // ==================== ESTOQUE ====================
+        => await _produtoService.DeletarAsync(id) ? NoContent() : NotFound();
 
     [HttpGet("api/estoque")]
-    public async Task<IActionResult> ListarEstoque()
-    {
-        var resultado = await _estoqueService.ListarEstoqueAsync();
-        return Ok(resultado);
-    }
+    public async Task<IActionResult> ListarEstoque() => Ok(await _estoqueService.ListarEstoqueAsync());
 
-    [HttpPost("api/estoque/reabastecer/{produtoId}/{quantidade}")]
+    [HttpPost("api/estoque/reabastecer/{produtoId:int}/{quantidade:int}")]
     public async Task<IActionResult> ReabastecerEstoque(int produtoId, int quantidade)
     {
         var (sucesso, produto) = await _estoqueService.ReabastecerAsync(produtoId, quantidade);
-        if (!sucesso) return NotFound();
-
-        return Ok(produto);
+        return sucesso ? Ok(produto) : BadRequest("Produto inexistente ou quantidade inválida.");
     }
-
-    // ==================== PEDIDOS ====================
 
     [HttpPost("api/pedidos")]
     public async Task<IActionResult> CriarPedido([FromBody] PedidoRequest request)
     {
         var (sucesso, erro, pedido) = await _pedidoService.CriarAsync(request);
-
-        if (!sucesso) return BadRequest(erro);
-        
-        return Ok(pedido);
+        return sucesso ? Ok(pedido) : BadRequest(erro);
     }
 
     [HttpGet("api/pedidos")]
-    public async Task<IActionResult> ListarPedidos()
-    {
-        var lista = await _pedidoService.ListarTodosAsync();
-        return Ok(lista);
-    }
+    public async Task<IActionResult> ListarPedidos() => Ok(await _pedidoService.ListarTodosAsync());
 
-    [HttpGet("api/pedidos/{id}")]
+    [HttpGet("api/pedidos/{id:int}")]
     public async Task<IActionResult> BuscarPedido(int id)
     {
         var pedido = await _pedidoService.BuscarPorIdAsync(id);
-        
-        if (pedido == null) return NotFound();
-        return Ok(pedido);
+        return pedido is null ? NotFound() : Ok(pedido);
     }
 
-    // ==================== PAGAMENTO ====================
-
-    [HttpPost("api/pagamentos/reprocessar/{pedidoId}")]
-    public IActionResult ReprocessarPagamento(int pedidoId)
+    [HttpPost("api/pagamentos/reprocessar/{pedidoId:int}")]
+    public async Task<IActionResult> ReprocessarPagamento(int pedidoId)
     {
-        var pedido = _db.Pedidos.Include(p => p.Itens).FirstOrDefault(p => p.Id == pedidoId);
-        if (pedido == null) return NotFound();
+        var pedido = await _db.Pedidos.Include(p => p.Itens).FirstOrDefaultAsync(p => p.Id == pedidoId);
+        if (pedido is null) return NotFound();
 
-        bool ok = PagamentoMock.ProcessarPagamento(pedido.ValorTotal, pedido.FormaPagamento);
+        var ok = await PagamentoMock.ProcessarPagamentoAsync(pedido.ValorTotal, pedido.FormaPagamento);
         if (!ok)
         {
-            pedido.Status = StatusPedido.Falhou.ToString();
-            _db.SaveChanges();
-            return BadRequest("pagamento recusado novamente");
+            pedido.Status = StatusPedido.Falhou;
+            await _db.SaveChangesAsync();
+            return BadRequest("Pagamento recusado novamente.");
         }
 
-        pedido.Status = StatusPedido.Pago.ToString();
-        _db.SaveChanges();
+        pedido.Status = StatusPedido.Pago;
+        await _db.SaveChangesAsync();
         return Ok(pedido);
     }
 
-    // ==================== LOGISTICA ====================
-
-    [HttpPost("api/logistica/reenviar/{pedidoId}")]
-    public IActionResult ReenviarLogistica(int pedidoId)
+    [HttpPost("api/logistica/reenviar/{pedidoId:int}")]
+    public async Task<IActionResult> ReenviarLogistica(int pedidoId)
     {
-        var pedido = _db.Pedidos.FirstOrDefault(p => p.Id == pedidoId);
-        if (pedido == null) return NotFound();
+        var pedido = await _db.Pedidos.FirstOrDefaultAsync(p => p.Id == pedidoId);
+        if (pedido is null) return NotFound();
 
-        var codigo = LogisticaMock.EnviarAsync(pedido).Result;
-        pedido.CodigoRastreio = codigo;
-        pedido.Status = StatusPedido.Enviado.ToString();
-        _db.SaveChanges();
+        pedido.CodigoRastreio = await LogisticaMock.EnviarAsync(pedido);
+        pedido.Status = StatusPedido.Enviado;
+        await _db.SaveChangesAsync();
         return Ok(pedido);
     }
 }

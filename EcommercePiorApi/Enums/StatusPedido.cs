@@ -1,10 +1,9 @@
-namespace PiorEcommerceDoMundo.Enums
+namespace PiorEcommerceDoMundo.Enums;
+
+public enum StatusPedido
 {
-    public enum StatusPedido
-    {
-        Pendente,
-        Pago,
-        Falhou,
-        Enviado
-    }
-};
+    Pendente,
+    Pago,
+    Falhou,
+    Enviado
+}

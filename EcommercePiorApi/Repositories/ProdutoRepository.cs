@@ -1,5 +1,3 @@
-#nullable enable
-
 using Microsoft.EntityFrameworkCore;
 using PiorEcommerceDoMundo.Repositories.Interfaces;
 
@@ -9,39 +7,17 @@ public class ProdutoRepository : IProdutoRepository
 {
     private readonly AppDbContext _db;
 
-    public ProdutoRepository(AppDbContext db)
-    {
-        _db = db;
-    }
+    public ProdutoRepository(AppDbContext db) => _db = db;
 
-    public async Task<List<Produto>> ListarAsync()
-    {
-        return await _db.Produtos.ToListAsync();
-    }
+    public Task<List<Produto>> ListarAsync() => _db.Produtos.AsNoTracking().ToListAsync();
 
-    public async Task<Produto?> ObterPorIdAsync(int id)
-    {
-        return await _db.Produtos.FindAsync(id);
-    }
+    public Task<Produto?> ObterPorIdAsync(int id) => _db.Produtos.FirstOrDefaultAsync(p => p.Id == id);
 
-    public async Task AdicionarAsync(Produto produto)
-    {
-        await _db.Produtos.AddAsync(produto);
+    public async Task AdicionarAsync(Produto produto) => await _db.Produtos.AddAsync(produto);
 
-    }
-    public void Atualizar(Produto produto)
-    {
-    _db.Produtos.Update(produto);
-    }
-    
-    public void Remover(Produto produto)
-    {
-    _db.Produtos.Remove(produto);
-    }
+    public void Atualizar(Produto produto) => _db.Produtos.Update(produto);
 
-    public async Task<int> SalvarAlteracoesAsync()
-{
-    return await _db.SaveChangesAsync();
-}
+    public void Remover(Produto produto) => _db.Produtos.Remove(produto);
 
+    public Task<int> SalvarAlteracoesAsync() => _db.SaveChangesAsync();
 }

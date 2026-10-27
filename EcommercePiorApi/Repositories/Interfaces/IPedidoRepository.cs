@@ -1,7 +1,4 @@
-#nullable enable
-
 using PiorEcommerceDoMundo;
-
 namespace PiorEcommerceDoMundo.Repositories.Interfaces;
 
 public interface IPedidoRepository

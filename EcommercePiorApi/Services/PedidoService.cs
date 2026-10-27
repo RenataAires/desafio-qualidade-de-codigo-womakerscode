@@ -1,7 +1,7 @@
+using PiorEcommerceDoMundo;
 using PiorEcommerceDoMundo.Enums;
-using PiorEcommerceDoMundo.Services.Interfaces;
 using PiorEcommerceDoMundo.Repositories.Interfaces;
-using PiorEcommerceDoMundo.Repositories;
+using PiorEcommerceDoMundo.Services.Interfaces;
 
 namespace PiorEcommerceDoMundo.Services;
 
@@ -10,11 +10,11 @@ public class PedidoService : IPedidoService
     private readonly IDescontoService _descontoService;
     private readonly IEstoqueService _estoqueService;
     private readonly IPedidoRepository _pedidoRepository;
-    private readonly IProdutoRepository _produtoRepository; // Precisa pra validar o estoque
+    private readonly IProdutoRepository _produtoRepository;
 
     public PedidoService(
-        IDescontoService descontoService, 
-        IEstoqueService estoqueService, 
+        IDescontoService descontoService,
+        IEstoqueService estoqueService,
         IPedidoRepository pedidoRepository,
         IProdutoRepository produtoRepository)
     {
@@ -24,85 +24,91 @@ public class PedidoService : IPedidoService
         _produtoRepository = produtoRepository;
     }
 
-    public async Task<(bool sucesso, string erro, Pedido pedido)> CriarAsync(PedidoRequest request)
+    public async Task<(bool sucesso, string erro, Pedido? pedido)> CriarAsync(PedidoRequest request)
     {
-        if (string.IsNullOrEmpty(request.ClienteNome)) return (false, "informe o nome do cliente", null!);
-        if (!Utils.ValidarEmail(request.ClienteEmail)) return (false, "email invalido", null!);
-        if (request.Itens == null || request.Itens.Count == 0) return (false, "pedido sem itens", null!);
+        if (request is null) return (false, "Os dados do pedido são obrigatórios.", null);
+        if (string.IsNullOrWhiteSpace(request.ClienteNome)) return (false, "Informe o nome do cliente.", null);
+        if (!Utils.ValidarEmail(request.ClienteEmail)) return (false, "E-mail inválido.", null);
+        if (request.Itens is null || request.Itens.Count == 0) return (false, "O pedido precisa ter pelo menos um item.", null);
+        if (request.Itens.Any(i => i.ProdutoId <= 0 || i.Quantidade <= 0))
+            return (false, "Cada item precisa ter um produto válido e quantidade maior que zero.", null);
 
         var pedido = new Pedido
         {
-            ClienteNome = request.ClienteNome,
-            ClienteEmail = request.ClienteEmail,
-            DataPedido = DateTime.Now,
-            FormaPagamento = request.FormaPagamento,
-            Status = StatusPedido.Pendente.ToString(),
+            ClienteNome = request.ClienteNome.Trim(),
+            ClienteEmail = request.ClienteEmail.Trim(),
+            DataPedido = DateTime.UtcNow,
+            FormaPagamento = request.FormaPagamento?.Trim() ?? string.Empty,
+            Status = StatusPedido.Pendente,
             Itens = new List<ItemPedido>()
         };
 
         decimal total = 0;
+        var produtosDoPedido = new Dictionary<int, Produto>();
 
-        foreach (var itemReq in request.Itens)
+        // Primeiro valida todos os itens e calcula o total. Não altera estoque antes do pagamento.
+        foreach (var itemRequest in request.Itens)
         {
-            var produto = await _produtoRepository.ObterPorIdAsync(itemReq.ProdutoId);
-            if (produto == null) return (false, "produto " + itemReq.ProdutoId + " nao encontrado", null!);
-            if (!produto.Ativo) return (false, "produto " + produto.Nome + " esta inativo", null!);
-            if (produto.QuantidadeEstoque < itemReq.Quantidade) return (false, "estoque insuficiente para " + produto.Nome, null!);
+            var produto = await _produtoRepository.ObterPorIdAsync(itemRequest.ProdutoId);
+            if (produto is null) return (false, $"Produto {itemRequest.ProdutoId} não encontrado.", null);
+            if (!produto.Ativo) return (false, $"O produto {produto.Nome} está inativo.", null);
 
-            produto.QuantidadeEstoque -= itemReq.Quantidade;
-            _produtoRepository.Atualizar(produto);
+            var quantidadeJaSolicitada = pedido.Itens
+                .Where(i => i.ProdutoId == produto.Id)
+                .Sum(i => i.Quantidade);
+            if (produto.QuantidadeEstoque < quantidadeJaSolicitada + itemRequest.Quantidade)
+                return (false, $"Estoque insuficiente para {produto.Nome}.", null);
 
-            var item = new ItemPedido
+            produtosDoPedido[produto.Id] = produto;
+            pedido.Itens.Add(new ItemPedido
             {
                 ProdutoId = produto.Id,
-                Quantidade = itemReq.Quantidade,
+                Quantidade = itemRequest.Quantidade,
                 PrecoUnitario = produto.Preco
-            };
-            pedido.Itens.Add(item);
-
-            total += (produto.Preco * itemReq.Quantidade);
+            });
+            total += produto.Preco * itemRequest.Quantidade;
         }
 
-        total = _descontoService.AplicarDesconto(total, request.ClienteEmail);
-        pedido.ValorTotal = total;
+        pedido.ValorTotal = _descontoService.AplicarDesconto(total, pedido.ClienteEmail);
 
+        // Mantém o registro de pedidos recusados, mas ainda não baixa o estoque.
         await _pedidoRepository.AdicionarAsync(pedido);
-        await _pedidoRepository.SalvarAlteracoesAsync(); 
+        await _pedidoRepository.SalvarAlteracoesAsync();
 
-        bool pagamentoOk = PagamentoMock.ProcessarPagamento(total, request.FormaPagamento);
-
-        if (!pagamentoOk)
+        var pagamentoAprovado = await PagamentoMock.ProcessarPagamentoAsync(pedido.ValorTotal, pedido.FormaPagamento);
+        if (!pagamentoAprovado)
         {
-            pedido.Status = StatusPedido.Falhou.ToString();
+            pedido.Status = StatusPedido.Falhou;
             _pedidoRepository.Atualizar(pedido);
             await _pedidoRepository.SalvarAlteracoesAsync();
-            
-            // Estorno assíncrono!
-            await _estoqueService.EstornarEstoqueAsync(pedido.Itens);
-            
-            return (false, "pagamento recusado", null!);
+            return (false, "Pagamento recusado.", null);
         }
 
-        pedido.Status = StatusPedido.Pago.ToString();
+        foreach (var item in pedido.Itens)
+        {
+            var produto = produtosDoPedido[item.ProdutoId];
+            produto.QuantidadeEstoque -= item.Quantidade;
+            _produtoRepository.Atualizar(produto);
+        }
+
+        pedido.Status = StatusPedido.Pago;
         _pedidoRepository.Atualizar(pedido);
         await _pedidoRepository.SalvarAlteracoesAsync();
 
-        var codigoRastreio = LogisticaMock.EnviarAsync(pedido).Result;
-        pedido.CodigoRastreio = codigoRastreio;
-        pedido.Status = StatusPedido.Enviado.ToString();
+        // A chamada logística é aguardada sem bloquear a thread com .Result.
+        pedido.CodigoRastreio = await LogisticaMock.EnviarAsync(pedido);
+        pedido.Status = StatusPedido.Enviado;
         _pedidoRepository.Atualizar(pedido);
         await _pedidoRepository.SalvarAlteracoesAsync();
 
-        return (true, "", pedido);
+        return (true, string.Empty, pedido);
     }
 
-    public async Task<List<Pedido>> ListarTodosAsync()
-    {
-        return await _pedidoRepository.ListarAsync();
-    }
+    public Task<List<Pedido>> ListarTodosAsync() => _pedidoRepository.ListarAsync();
 
-    public async Task<Pedido> BuscarPorIdAsync(int id)
+    public Task<Pedido?> BuscarPorIdAsync(int id)
     {
-        return await _pedidoRepository.ObterPorIdAsync(id);
+        if (id <= 0) return Task.FromResult<Pedido?>(null);
+        return _pedidoRepository.ObterPorIdAsync(id);
     }
 }

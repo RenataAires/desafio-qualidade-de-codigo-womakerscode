@@ -1,21 +1,19 @@
 namespace PiorEcommerceDoMundo;
 
-// "servico" de pagamento que na verdade eh so uma classe estatica mockada
+// Mock simples e previsível. A Pessoa 5 poderá encapsulá-lo em IPagamentoService.
 public static class PagamentoMock
 {
-    public static bool ProcessarPagamento(decimal valor, string formaPagamento)
+    public static Task<bool> ProcessarPagamentoAsync(decimal valor, string formaPagamento)
     {
-        Console.WriteLine("Processando pagamento de " + valor + " via " + formaPagamento);
-        Thread.Sleep(500); // simula demora do gateway de pagamento, bloqueando a thread mesmo
+        Console.WriteLine($"Processando pagamento de {valor:C} via {formaPagamento}.");
 
-        var random = new Random();
-        var sorteio = random.Next(0, 100);
+        if (valor <= 0 || string.IsNullOrWhiteSpace(formaPagamento))
+            return Task.FromResult(false);
 
-        // regra de negocio critica decidida no sorteio de um numero aleatorio
-        if (formaPagamento == "cartao" && sorteio < 10)
-        {
-            return false;
-        }
-        return true;
+        // Cenário previsível para testar recusa: envie "recusado" como forma de pagamento.
+        var recusado = formaPagamento.Equals("recusado", StringComparison.OrdinalIgnoreCase)
+            || formaPagamento.Equals("falha", StringComparison.OrdinalIgnoreCase);
+
+        return Task.FromResult(!recusado);
     }
 }
