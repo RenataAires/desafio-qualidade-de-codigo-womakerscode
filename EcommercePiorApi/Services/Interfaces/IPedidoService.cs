@@ -1,4 +1,5 @@
 namespace PiorEcommerceDoMundo.Services.Interfaces;
+using PiorEcommerceDoMundo.DTOs;
 
 public interface IPedidoService
 {
