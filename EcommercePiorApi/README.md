@@ -1,73 +1,278 @@
-# Desafio ECommerce - Refatoração
+# EcommercePiorApi
 
-API .NET (ASP.NET Core Web API, `net10.0`) que simula um monólito de e-commerce.
-O código é **intencionalmente ruim**, serve como ponto de partida para exercícios
-de refatoração, aplicação de SOLID, organização em camadas e boas práticas.
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-Web_API-512BD4?style=for-the-badge&logo=dotnet)
+![Entity Framework](https://img.shields.io/badge/Entity_Framework_Core-512BD4?style=for-the-badge)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github)
 
-## Como rodar
+## Sobre o projeto
+
+O EcommercePiorApi é uma API ASP.NET Core desenvolvida como parte de um desafio de Qualidade de Código, Arquitetura e Refatoração.
+
+O projeto foi disponibilizado inicialmente com diversos problemas intencionais de arquitetura, organização e manutenção. A proposta do desafio foi evoluir a aplicação aplicando conceitos como SOLID, Injeção de Dependência, separação de responsabilidades, camadas de serviço e acesso a dados.
+
+---
+
+## Conceitos aplicados
+
+![SOLID](https://img.shields.io/badge/SOLID-Principles-blue?style=for-the-badge)
+![Dependency Injection](https://img.shields.io/badge/Dependency_Injection-DI-green?style=for-the-badge)
+![Repository Pattern](https://img.shields.io/badge/Repository-Pattern-orange?style=for-the-badge)
+![Service Layer](https://img.shields.io/badge/Service-Layer-red?style=for-the-badge)
+![Clean Code](https://img.shields.io/badge/Clean-Code-2ea44f?style=for-the-badge)
+
+---
+
+## Tecnologias utilizadas
+
+- .NET 10
+- ASP.NET Core Web API
+- Entity Framework Core
+- SQLite
+- Swagger / OpenAPI
+
+---
+
+## Arquitetura do projeto
+
+A aplicação foi reorganizada seguindo uma estrutura em camadas para melhorar a manutenção, legibilidade e escalabilidade do código.
+
+```text
+EcommercePiorApi/
+│
+├── Controllers/
+│   ├── EstoqueController.cs
+│   ├── PedidosController.cs
+│   └── ProdutosController.cs
+│
+├── Data/
+│   └── AppDbContext.cs
+│
+├── DTOs/
+│   ├── AtualizarProdutoDTO.cs
+│   ├── CriarProdutoDTO.cs
+│   ├── ItemPedidoResponseDTO.cs
+│   ├── ItemRequest.cs
+│   ├── PedidoRequest.cs
+│   ├── PedidoResponseDTO.cs
+│   ├── ProdutoResponseDTO.cs
+│   └── ReabastecerEstoqueDTO.cs
+│
+├── Enums/
+│   └── StatusPedido.cs
+│
+├── Exceptions/
+│
+├── Middleware/
+│
+├── Models/
+│   ├── Produto.cs
+│   ├── Pedido.cs
+│   └── ItemPedido.cs
+│
+├── Repositories/
+│   ├── Interfaces/
+│   ├── PedidoRepository.cs
+│   └── ProdutoRepository.cs
+│
+├── Services/
+│   ├── Interfaces/
+│   ├── DescontoService.cs
+│   ├── EstoqueService.cs
+│   ├── PedidoService.cs
+│   └── ProdutoService.cs
+│
+├── appsettings.json
+├── EcommercePiorApi.csproj
+├── LogisticaMock.cs
+├── PagamentoMock.cs
+├── Program.cs
+├── README.md
+└── Utils.cs
+```
+
+---
+
+## Responsabilidade das camadas
+
+### Controllers
+
+Responsáveis por receber as requisições HTTP e retornar as respostas da API.
+
+### DTOs
+
+Responsáveis pela transferência de dados entre cliente e aplicação, evitando expor diretamente as entidades do domínio.
+
+### Models
+
+Representam as entidades de negócio da aplicação.
+
+Exemplos:
+
+- Produto
+- Pedido
+- ItemPedido
+
+### Services
+
+Contêm as regras de negócio da aplicação.
+
+Exemplos:
+
+- Processamento de pedidos
+- Controle de estoque
+- Aplicação de descontos
+
+### Repositories
+
+Responsáveis pelo acesso aos dados utilizando o Entity Framework.
+
+### Data
+
+Contém a configuração do banco de dados através do `AppDbContext`.
+
+### Middleware
+
+Destinado ao tratamento global das requisições e exceções da aplicação.
+
+### Exceptions
+
+Responsável pelas exceções customizadas do domínio.
+
+---
+
+## Melhorias implementadas
+
+### Estrutura e organização
+
+- Separação de responsabilidades por camadas.
+- Criação de Controllers específicos por domínio.
+- Criação das camadas Repository e Service.
+- Organização dos DTOs.
+- Separação dos Models em arquivos individuais.
+
+### Banco de dados
+
+- Remoção da connection string hardcoded.
+- Utilização de `appsettings.json`.
+- Configuração do Entity Framework através de Dependency Injection.
+- Centralização da configuração do banco em `AppDbContext`.
+
+### Qualidade de código
+
+- Redução do acoplamento.
+- Aplicação de princípios SOLID.
+- Organização das responsabilidades por domínio.
+- Maior facilidade para manutenção e evolução do projeto.
+
+---
+
+## Funcionalidades
+
+### Produtos
+
+- Listar produtos
+- Buscar produto por ID
+- Cadastrar produto
+- Atualizar produto
+- Remover produto
+
+### Estoque
+
+- Consultar estoque
+- Reabastecer estoque
+
+### Pedidos
+
+- Criar pedido
+- Consultar pedidos
+- Buscar pedido por ID
+
+### Pagamento
+
+- Simulação de processamento de pagamento
+
+### Logística
+
+- Simulação de geração de código de rastreio
+
+---
+
+## Como executar o projeto
+
+### 1. Clonar o repositório
+
+```bash
+git clone <url-do-repositorio>
+```
+
+### 2. Entrar na pasta do projeto
 
 ```bash
 cd EcommercePiorApi
+```
+
+### 3. Restaurar dependências
+
+```bash
+dotnet restore
+```
+
+### 4. Compilar o projeto
+
+```bash
+dotnet build
+```
+
+### 5. Executar a aplicação
+
+```bash
 dotnet run
 ```
 
-O banco SQLite (`ecommerce.db`) é criado automaticamente na primeira execução,
-com alguns produtos de exemplo já cadastrados. Swagger disponível em `/swagger`:
+O banco SQLite será criado automaticamente na primeira execução.
+
+---
+
+## Documentação da API
+
+Após iniciar a aplicação, acesse o Swagger pela URL exibida no terminal.
+
+Exemplo:
 
 ```text
-http://localhost:5000/swagger/index.html
+https://localhost:xxxx/swagger
 ```
 
-## Domínios cobertos
+ou
 
-- CRUD de produtos
-- Estoque (baixa e reabastecimento)
-- Criação de pedidos (calcula total, valida estoque, aplica desconto)
-- Pagamento mockado (`PagamentoMock`)
-- Logística mockada (`LogisticaMock`, gera código de rastreio)
+```text
+http://localhost:xxxx/swagger
+```
 
-Tudo isso vive no mesmo projeto, sem separação por domínio.
+---
 
-## Problemas propositais (para as alunas encontrarem e corrigirem)
+## Equipe
 
-- **God Controller**: `EcommerceController` concentra produtos, estoque, pedidos,
-  pagamento e logística — viola SRP feio.
-- **Sem camadas**: não há Domain/Application/Infrastructure, nem repositórios,
-  nem services com interface. Tudo é `static` ou direto no controller.
-- **Sem injeção de dependência para dados**: cada método faz `new AppDbContext()`
-  na mão em vez de injetar via DI.
-- **DbContext com connection string fixa** (`OnConfiguring` hardcoded), ignorando
-  configuração via `appsettings.json`/DI.
-- **Entidades expostas diretamente na API** (sem DTOs de request/response),
-  inclusive recebendo `Produto` completo no `POST`/`PUT`.
-- **Regra de negócio (desconto) com números mágicos** espalhada no meio do fluxo
-  de criação de pedido.
-- **Falta de transação/atomicidade**: o estoque é debitado antes do pagamento
-  ser confirmado e **não é estornado** se o pagamento falhar (bug proposital).
-- **Chamadas assíncronas usadas de forma bloqueante** (`.Result` em vez de `await`).
-- **Duplicação de código**: `ReprocessarPagamento` e `ReenviarLogistica` repetem
-  lógica que já existe em `CriarPedido`; `ListarEstoque` repete `ListarProdutos`.
-- **Classe utilitária "faz-tudo"** (`Utils`): validação de e-mail, log em arquivo
-  e geração de código de rastreio, tudo junto.
-- **Mock de pagamento com `Random` local e `Thread.Sleep`**, decidindo uma regra
-  de negócio crítica por sorteio.
-- **Tratamento de erro genérico/ausente**: sem exceptions customizadas, sem
-  middleware de erro, log engolindo exceções em `catch { }`.
-- **Status como `string` solta** (`"Pendente"`, `"Pago"`, `"Falhou"`, `"Enviado"`)
-  em vez de enum.
-- **Tudo em um único projeto/pasta**, sem organização por pastas
-  (Models, Controllers, Services e DTOs misturados).
+| Participante | Responsabilidade |
+|-------------|------------------|
+| Renata Aires | Infraestrutura, Models e Data |
+| Maria Vitória Espínola Carneiro | Repositories e contratos de persistência |
+| Ana Carla Gomes da S. Lima | Services de produtos, estoque e pedidos |
+| Samla Manathe de Souza Domingos | Controllers e DTOs |
+| Thaislaine Erica T. dos Reis | Pagamentos, logística, tratamento de erros e testes |
 
-## Comece assim
+---
 
-Este projeto foi construído com vários problemas propositais e desafio é identificar esses problemas e refatorar o código aplicando os conceitos vistos em aula, camadas, SOLID, injeção de dependência, padrões de projeto, tratamento de erros, entre outros.
+## Objetivos alcançados
 
-Não existe uma única forma "certa" de resolver: use o que fizer mais sentido para cada problema encontrado. Algumas perguntas para guiar o raciocínio:
-
-- Onde estão as responsabilidades misturadas? Como separá-las em camadas
-  coesas?
-- Que princípios SOLID estão sendo violados e como corrigi-los?
-- Existe algum padrão de projeto que resolveria naturalmente algum dos
-  problemas listados (criação de objetos, troca de comportamento em tempo de
-  execução, acesso a dados etc.)?
-- Como tornar o código testável e mais fácil de manter?
+- Aplicação dos princípios SOLID.
+- Uso de Injeção de Dependência.
+- Organização em camadas.
+- Separação das responsabilidades.
+- Refatoração de código legado.
+- Estrutura preparada para manutenção e evolução futura.
+- Trabalho colaborativo utilizando Git e GitHub.
